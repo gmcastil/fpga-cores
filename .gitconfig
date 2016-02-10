@@ -1,0 +1,12 @@
+[user]
+	email = gmcastil@gmail.com
+	name = George Castillo
+
+[color]
+	ui = auto
+
+[core]
+	excludesfile = ~/.gitignore
+
+[github]
+	user = gmcastil
