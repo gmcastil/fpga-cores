@@ -1,0 +1,42 @@
+#!/bin/bash
+
+gray="\[\033[1;30m\]"
+light_gray="\[\033[0;37m\]"
+cyan="\[\033[0;36m\]"
+light_cyan="\[\033[1;36m\]"
+red="\[\033[0;31m\]"
+green="\[\033[0;32m\]"
+light_red="\[\033[1;31m\]"
+yellow="\[\033[0;33m\]"
+light_yellow="\[\033[1;33m\]"
+no_color="\[\033[0m\]"
+
+function prompt_command() {
+    # this determines the color from the previous exit value and
+    # stores the result
+    local cmd_status="$?"
+    local status_color=""
+    if [ $cmd_status != 0 ]; then
+	status_color=$light_red
+    else
+	status_color=$cyan
+    fi
+
+    # now determine if the pwd is in an SVN repository
+    svn info > /dev/null 2>&1
+    local svn_status="$?"
+    if [ $svn_status == 0 ]; then
+	SVN="SVN"
+	svn_string="$gray($cyan$SVN$gray)"
+    else
+	svn_string=""
+    fi
+
+    # force resolution of symlinks
+    pwd=`readlink -f .`
+
+    PS1="$cyan\u$gray@$cyan\h $gray[$status_color$cmd_status$gray] $svn_string $light_cyan$pwd\n$cyan$gray\$ $no_color"
+    export PS1
+}
+
+export PROMPT_COMMAND=prompt_command
