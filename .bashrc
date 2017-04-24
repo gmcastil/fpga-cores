@@ -1,27 +1,44 @@
-# .bashrc
+#!/bin/bash
 
-# Anything else that goes at an interactive prompt.  Command prompt, editor
-# variables, aliases
-
-# Source global definitions
-if [ -f /etc/bashrc ]; then
-	. /etc/bashrc
+# -- Colors
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 
-# User specific aliases and functions
-alias ll='ls -lh'
-alias df='df -h'
+# --- Aliases
+alias ls='ls --color=auto'
+alias ll='ls -lhX --color=auto'
+alias la='ls -alhX --color=auto'
+
+alias mv='mv -v'
+alias cp='cp -v'
 alias du='du -h'
+alias df='df -h'
 
-# Enable colors and set better colors for directory listings
-export CLICOLOR=1
-export LSCOLORS=ExFxBxDxCxegedabagacad
+# --- Setup path
+export PATH=$HOME/.loca/bin:$PATH
 
-# Use syntax highlighting for less
-export LESSOPEN="| /usr/bin/source-highlight-esc.sh %s"
-export LESS=' -R '
+# --- Bash
 
-# Add Git to the prompt in an intelligent way
-if [ -f ~/.gitprompt ]; then
-    source ~/.gitprompt
+# Disk space is cheap
+HISTSIZE=100000
+HISTFILESIZE=200000
+
+# Check window size after each command and update LINES and COLUMNS if necessary
+shopt -s checkwinsize
+shopt -s histappend
+
+MOST_PATH=$(which most)
+if [ -x "$MOST_PATH" ]; then
+    export PAGER=most
+fi
+
+# --- Prompt
+if [ -f $HOME/.prompt ]; then
+    source $HOME/.prompt
+fi
+
+# --- HDL tools
+if [ -f $HOME/.toolsrc ]; then
+    source $HOME/.toolsrc
 fi
