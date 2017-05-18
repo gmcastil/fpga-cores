@@ -1,42 +1,87 @@
 #!/bin/bash
 
-gray="\[\033[1;30m\]"
-light_gray="\[\033[0;37m\]"
-cyan="\[\033[0;36m\]"
-light_cyan="\[\033[1;36m\]"
+# username     - green
+# hostname     - green
+# error status - green
+# VCS status   - variable
+# pathname     - purple
+#
+# username@hostname [?] (VCS) /absolute/path/to/pwd
+# $
+
+# These are not all the combinations available, but it should still be
+# enough to support the desired combinations
+black="\[\033[0;30m\]"
 red="\[\033[0;31m\]"
 green="\[\033[0;32m\]"
+brown="\[\033[0;33m\]"
+blue="\[\033[0;34m\]"
+purple="\[\033[0;35m\]"
+cyan="\[\033[0;36m\]"
+light_gray="\[\033[0;37m\]"
+
+dark_gray="\[\033[1;30m\]"
 light_red="\[\033[1;31m\]"
-yellow="\[\033[0;33m\]"
+light_green="\[\033[1;32m\]"
 light_yellow="\[\033[1;33m\]"
+light_blue="\[\033[1;34m\]"
+light_purple="\[\033[1;35m\]"
+light_cyan="\[\033[1;36m\]"
+white="\[\033[1;37m\]"
+
 no_color="\[\033[0m\]"
 
 function prompt_command() {
-    # this determines the color from the previous exit value and
-    # stores the result
+
+    # Determine color encoding for the command status
     local cmd_status="$?"
-    local status_color=""
+    local cmd_color=""
     if [ $cmd_status != 0 ]; then
-	status_color=$light_red
+        cmd_color=$light_red
     else
-	status_color=$cyan
+        cmd_color=$green
     fi
 
-    # now determine if the pwd is in an SVN repository
-    svn info > /dev/null 2>&1
-    local svn_status="$?"
-    if [ $svn_status == 0 ]; then
-	SVN="SVN"
-	svn_string="$gray($cyan$SVN$gray)"
+    # if a git repo, set the string for color, branch name, and status
+    if ! [[ `git status -unormal 2>&1` =~ Not\ a\ git\ repo ]]; then
+        local vcs_string=$(git_prompt)
+    elif [[ `svn info $PWD 2>&1` =~ 0 ]]; then
+        local vcs_string=$(svn_prompt)
     else
-	svn_string=""
+        local vcs_string=""
     fi
 
-    # force resolution of symlinks
-    pwd=`readlink -f .`
+    # retrieve the canonical location rather than the
+    pwd=`pwd -P`
 
-    PS1="$cyan\u$gray@$cyan\h $gray[$status_color$cmd_status$gray] $svn_string $light_cyan$pwd\n$cyan$gray\$ $no_color"
+    PS1="$green\u$dark_gray@$green\h $dark_gray[$cmd_color$cmd_status$dark_gray] $vcs_string $brown$pwd\n\$ $no_color"
     export PS1
 }
+
+function git_prompt() {
+    # Returns a formatted and colorized string containing branch name and status
+    local git_status="`git status -unormal 2>&1`"
+    if [[ "$git_status" =~ nothing\ to\ commit ]]; then
+	local git_color=$green
+    elif [[ "$git_status" =~ nothing\ added\ to\ commit\ but\ untracked\ files\ present ]]; then
+	local git_color=$red
+    else
+	local git_color=$yellow
+    fi
+    if [[ "$git_status" =~ On\ branch\ ([^[:space:]]+) ]]; then
+	branch=${BASH_REMATCH[1]}
+    else
+	branch="(`git describe --all --contains --abbrev=4 HEAD 2> /dev/null || echo HEAD`)"
+    fi
+    #echo -n '(\['"$git_color"'\]'"$branch"'\[\e[0m\])'
+    echo -n "$dark_gray($git_color$branch$dark_gray)"
+}
+
+function svn_prompt() {
+    # try using a combination of `svn info` and `svn status` with some regex to determine if there are
+    # untracked files in the directory or whether there are commits that are ahead of the latest revision
+    echo -n "(SVN)"
+}
+
 
 export PROMPT_COMMAND=prompt_command
