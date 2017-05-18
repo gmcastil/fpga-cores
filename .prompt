@@ -88,6 +88,9 @@ function svn_prompt() {
     # Try using a combination of `svn info` and `svn status` with some regex to
     # determine if there are untracked files in the directory or whether there
     # are commits that are ahead of the latest revision
+
+    # - uncommitted changes in a directory
+    # -
     local svn_color=$green
     local svn_string="svn"
     echo -n "$sep_color($svn_color$svn_string$sep_color)"
