@@ -14,7 +14,7 @@
 black="\[\033[0;30m\]"
 red="\[\033[0;31m\]"
 green="\[\033[0;32m\]"
-brown="\[\033[0;33m\]"
+yellow="\[\033[0;33m\]"
 blue="\[\033[0;34m\]"
 purple="\[\033[0;35m\]"
 cyan="\[\033[0;36m\]"
@@ -31,9 +31,13 @@ white="\[\033[1;37m\]"
 
 no_color="\[\033[0m\]"
 
+# Define the color for things like @, [, ( in one place
+sep_color=$dark_gray
+
 function prompt_command() {
 
-    # Determine color encoding for the command status
+    # Determine color encoding for the command status - this has to be the
+    # first line in the function to catch the command status
     local cmd_status="$?"
     local cmd_color=""
     if [ $cmd_status != 0 ]; then
@@ -41,6 +45,7 @@ function prompt_command() {
     else
         cmd_color=$green
     fi
+    local cmd_string=$sep_color[$cmd_color$cmd_status$sep_color]
 
     # if a git repo, set the string for color, branch name, and status
     if ! [[ `git status -unormal 2>&1` =~ Not\ a\ git\ repo ]]; then
@@ -51,10 +56,13 @@ function prompt_command() {
         local vcs_string=""
     fi
 
-    # retrieve the canonical location rather than the
-    pwd=`pwd -P`
+    # Determine color and formatting for the hostname and user
+    local host_string="$cyan\u$sep_color@$cyan\h"
 
-    PS1="$green\u$dark_gray@$green\h $dark_gray[$cmd_color$cmd_status$dark_gray] $vcs_string $brown$pwd\n\$ $no_color"
+    # Resolve all symbolic lengths, regardless of how deep it goes
+    local path_string=$light_cyan`pwd -P`
+
+    PS1="$host_string $cmd_string $vcs_string $path_string\n$sep_color\$ $no_color"
     export PS1
 }
 
@@ -73,15 +81,16 @@ function git_prompt() {
     else
 	branch="(`git describe --all --contains --abbrev=4 HEAD 2> /dev/null || echo HEAD`)"
     fi
-    #echo -n '(\['"$git_color"'\]'"$branch"'\[\e[0m\])'
-    echo -n "$dark_gray($git_color$branch$dark_gray)"
+    echo -n "$sep_color($git_color$branch$sep_color)"
 }
 
 function svn_prompt() {
-    # try using a combination of `svn info` and `svn status` with some regex to determine if there are
-    # untracked files in the directory or whether there are commits that are ahead of the latest revision
-    echo -n "(SVN)"
+    # Try using a combination of `svn info` and `svn status` with some regex to
+    # determine if there are untracked files in the directory or whether there
+    # are commits that are ahead of the latest revision
+    local svn_color=$green
+    local svn_string="svn"
+    echo -n "$sep_color($svn_color$svn_string$sep_color)"
 }
-
 
 export PROMPT_COMMAND=prompt_command
