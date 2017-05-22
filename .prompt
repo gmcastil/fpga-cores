@@ -1,12 +1,27 @@
 #!/bin/bash
 
-# username     - green
-# hostname     - green
-# error status - green
-# VCS status   - variable
-# pathname     - purple
+# Set the prompt to include basic version control information and directory
+# navigation information.  In general, to change the default color and format,
+# edit the corresponding strings (e.g., $cmd_string) rather than adding onto
+# the definition for $PS1 in the prompt_command() function.  Naturally, this
+# also assumes that the appropriate executables are in $PATH.  To use this at
+# startup, put something similar to the following in your .bashrc:
 #
-# username@hostname [?] (VCS) /absolute/path/to/pwd
+# if [[ -f ~/.prompt ]]; then
+#     source ~/.prompt
+# else
+#     export PS1='\u@\h \$ '
+# fi
+#
+
+# Username     - green
+# Hostname     - green
+# Datetime     - purple
+# Error status - green or red
+# VCS status   - green, yellow or red depending on status
+# Pathname     - cyan
+#
+# username@hostname {datetime} [?] (VCS) /absolute/path/to/pwd
 # $
 
 # These are not all the combinations available, but it should still be
@@ -39,6 +54,7 @@ function prompt_command() {
     # Determine color encoding for the command status - this has to be the
     # first line in the function to catch the command status
     local cmd_status="$?"
+    local FULL_PWD=`pwd -P`
     local cmd_color=""
     if [ $cmd_status != 0 ]; then
         cmd_color=$light_red
@@ -50,7 +66,7 @@ function prompt_command() {
     # if a git repo, set the string for color, branch name, and status
     if ! [[ `git status -unormal 2>&1` =~ Not\ a\ git\ repo ]]; then
         local vcs_string=$(git_prompt)
-    elif [[ `svn info $PWD 2>&1` =~ 0 ]]; then
+    elif [[ `svn info $FULL_PWD 2>&1` =~ 0 ]]; then
         local vcs_string=$(svn_prompt)
     else
         local vcs_string=""
@@ -60,9 +76,15 @@ function prompt_command() {
     local host_string="$cyan\u$sep_color@$cyan\h"
 
     # Resolve all symbolic lengths, regardless of how deep it goes
-    local path_string=$light_cyan`pwd -P`
+    local path_string=$light_cyan$FULL_PWD
 
-    PS1="$host_string $cmd_string $vcs_string $path_string\n$sep_color\$ $no_color"
+    # Set the time string
+    local time_string="$sep_color{$purple\D{%F %T}$sep_color}"
+
+    # Embed the linefeed here
+    local stem_string="\n$sep_color\$ $no_color"
+
+    PS1="$host_string $time_string $cmd_string $vcs_string $path_string $stem_string"
     export PS1
 }
 
@@ -85,14 +107,13 @@ function git_prompt() {
 }
 
 function svn_prompt() {
-    # Try using a combination of `svn info` and `svn status` with some regex to
-    # determine if there are untracked files in the directory or whether there
-    # are commits that are ahead of the latest revision
-
-    # - uncommitted changes in a directory
-    # -
-    local svn_color=$green
-    local svn_string="svn"
+    local svn_status=`svn status -q | grep ^M`
+    local svn_string="SVN"
+    if [[ -z "$svn_status" ]]; then
+        local svn_color=$green
+    else
+        local svn_color=$yellow
+    fi
     echo -n "$sep_color($svn_color$svn_string$sep_color)"
 }
 
