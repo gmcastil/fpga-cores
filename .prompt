@@ -66,8 +66,10 @@ function prompt_command() {
     # if a git repo, set the string for color, branch name, and status
     if ! [[ `git status -unormal 2>&1` =~ Not\ a\ git\ repo ]]; then
         local vcs_string=$(git_prompt)
-    elif [[ `svn info $FULL_PWD 2>&1` =~ 0 ]]; then
+    elif ! [[ `svn info $FULL_PWD 2>&1` =~ not\ a\ working\ copy ]]; then
         local vcs_string=$(svn_prompt)
+    # elif [[ `svn info $PWD 2>&1` =~ 0 ]]; then
+    #     local vsc_string=$(svn_prompt)
     else
         local vcs_string=""
     fi
