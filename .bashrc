@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Don't do stupid things
-set -o errexit
-set -o pipefail
-set -o nounset
-
 # Check window size after each command and update LINES and COLUMNS if necessary
 shopt -s checkwinsize
 shopt -s histappend
