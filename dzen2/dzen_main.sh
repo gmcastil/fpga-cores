@@ -14,3 +14,8 @@ set -o pipefail
 set -o nounset
 
 SLEEP=1
+
+while true; do
+    echo "Main script"
+    sleep $SLEEP
+done
