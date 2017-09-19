@@ -47,7 +47,7 @@ white="\[\033[1;37m\]"
 no_color="\[\033[0m\]"
 
 # Define the color for things like @, [, ( in one place
-sep_color=$dark_gray
+sep_color=$light_blue
 
 function prompt_command() {
 
@@ -66,10 +66,8 @@ function prompt_command() {
     # if a git repo, set the string for color, branch name, and status
     if ! [[ `git status -unormal 2>&1` =~ Not\ a\ git\ repo ]]; then
         local vcs_string=$(git_prompt)
-    elif ! [[ `svn info $FULL_PWD 2>&1` =~ not\ a\ working\ copy ]]; then
+    elif [[ `svn info $FULL_PWD 2>&1` =~ 0 ]]; then
         local vcs_string=$(svn_prompt)
-    # elif [[ `svn info $PWD 2>&1` =~ 0 ]]; then
-    #     local vsc_string=$(svn_prompt)
     else
         local vcs_string=""
     fi
@@ -110,7 +108,7 @@ function git_prompt() {
 
 function svn_prompt() {
     local svn_status=`svn status -q | grep ^M`
-    local svn_string=`svnversion`
+    local svn_string="SVN"
     if [[ -z "$svn_status" ]]; then
         local svn_color=$green
     else
