@@ -108,7 +108,7 @@ function git_prompt() {
 
 function svn_prompt() {
     local svn_status=`svn status -q | grep ^M`
-    local svn_string="SVN"
+    local svn_string=`svnversion`
     if [[ -z "$svn_status" ]]; then
         local svn_color=$green
     else
