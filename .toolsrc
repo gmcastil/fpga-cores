@@ -3,4 +3,7 @@
 # Necessary hack to make Java apps (e.g., Vivado) not be blanks in Xmonad
 export _JAVA_AWT_WM_NONREPARENTING=1
 
-export PATH=$PATH:/opt/Xilinx/Vivado/2017.1/bin
+XILINX_VIVADO=/opt/Xilinx/Vivado/2017.1
+MODELSIM=/opt/Altera/intelFPGA_pro/17.0/modelsim_ase/linux
+
+export PATH=$PATH:$VIVADO:$MODELSIM
