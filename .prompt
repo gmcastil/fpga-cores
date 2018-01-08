@@ -1,5 +1,7 @@
 #!/bin/bash
 
+IFS=$' \n\t'
+
 # Set the prompt to include basic version control information and directory
 # navigation information.  In general, to change the default color and format,
 # edit the corresponding strings (e.g., $cmd_string) rather than adding onto
@@ -26,25 +28,25 @@
 
 # These are not all the combinations available, but it should still be
 # enough to support the desired combinations
-black="\[\033[0;30m\]"
-red="\[\033[0;31m\]"
-green="\[\033[0;32m\]"
-yellow="\[\033[0;33m\]"
-blue="\[\033[0;34m\]"
-purple="\[\033[0;35m\]"
-cyan="\[\033[0;36m\]"
-light_gray="\[\033[0;37m\]"
+black="\\[\\033[0;30m\\]"
+red="\\[\\033[0;31m\\]"
+green="\\[\\033[0;32m\\]"
+yellow="\\[\\033[0;33m\\]"
+blue="\\[\\033[0;34m\\]"
+purple="\\[\\033[0;35m\\]"
+cyan="\\[\\033[0;36m\\]"
+light_gray="\\[\\033[0;37m\\]"
 
-dark_gray="\[\033[1;30m\]"  # solarized dark background
-light_red="\[\033[1;31m\]"
-light_green="\[\033[1;32m\]"  # dark grey
-light_yellow="\[\033[1;33m\]"  # medium grey
-light_blue="\[\033[1;34m\]"  # brighter grey
-light_purple="\[\033[1;35m\]"
-light_cyan="\[\033[1;36m\]"
-white="\[\033[1;37m\]"
+dark_gray="\\[\\033[1;30m\\]"  # solarized dark background
+light_red="\\[\\033[1;31m\\]"
+light_green="\\[\\033[1;32m\\]"  # dark grey
+light_yellow="\\[\\033[1;33m\\]"  # medium grey
+light_blue="\\[\\033[1;34m\\]"  # brighter grey
+light_purple="\\[\\033[1;35m\\]"
+light_cyan="\\[\\033[1;36m\\]"
+white="\\[\\033[1;37m\\]"
 
-no_color="\[\033[0m\]"
+no_color="\\[\\033[0m\\]"
 
 # Define the color for things like @, [, ( in one place
 sep_color=$light_green
@@ -54,65 +56,83 @@ function prompt_command() {
     # Determine color encoding for the command status - this has to be the
     # first line in the function to catch the command status
     local cmd_status="$?"
-    local FULL_PWD=`pwd -P`
-    local cmd_color=""
-    if [ $cmd_status != 0 ]; then
-        cmd_color=$light_red
+
+    local full_pwd
+    local cmd_color
+    full_pwd="$(pwd -P)"
+    cmd_color=""
+    if [ "$cmd_status" != 0 ]; then
+        cmd_color="$light_red"
     else
-        cmd_color=$cyan
+        cmd_color="$cyan"
     fi
-    local cmd_string=$sep_color[$cmd_color$cmd_status$sep_color]
+
+    local cmd_string
+    cmd_string="$sep_color[$cmd_color$cmd_status$sep_color]"
 
     # if a git repo, set the string for color, branch name, and status
-    if ! [[ `git status -unormal 2>&1` =~ Not\ a\ git\ repo ]]; then
-        local vcs_string=$(git_prompt)
-    elif [[ `svn info $FULL_PWD 2>&1` =~ not\ a\ working\ copy ]]; then
-        local vcs_string=$(svn_prompt)
+    local vcs_string
+    if ! [[ "$(git status -unormal 2>&1)" =~ Not\ a\ git\ repo ]]; then
+        vcs_string="$(_git_prompt)"
+    elif ! [[ "$(svn info "$full_pwd" 2>&1)" =~ not\ a\ working\ copy ]]; then
+        vcs_string="$(_svn_prompt)"
     else
-        local vcs_string=""
+        vcs_string=""
     fi
 
+    local host_string
+    local path_string
+    local time_string
+    local stem_string
+
     # Determine color and formatting for the hostname and user
-    local host_string="$cyan\u$sep_color@$cyan\h"
+    host_string="$cyan\\u$sep_color@$cyan\\h"
 
     # Resolve all symbolic lengths, regardless of how deep it goes
-    local path_string=$light_cyan$FULL_PWD
+    path_string="$light_cyan$full_pwd"
 
     # Set the time string
-    local time_string="$sep_color{$purple\D{%F %T}$sep_color}"
+    time_string="$sep_color{$purple\\D{%F %T}$sep_color}"
 
     # Embed the linefeed here
-    local stem_string="\n$sep_color\$ $no_color"
+    stem_string="\\n$sep_color\\$ $no_color"
 
     PS1="$host_string $time_string $cmd_string $vcs_string $path_string $stem_string"
     export PS1
 }
 
-function git_prompt() {
+function _git_prompt() {
+
     # Returns a formatted and colorized string containing branch name and status
-    local git_status="`git status -unormal 2>&1`"
+    local git_status
+    git_status="$(git status -unormal 2>&1)"
     if [[ "$git_status" =~ nothing\ to\ commit ]]; then
-	local git_color=$green
+	local git_color="$green"
     elif [[ "$git_status" =~ nothing\ added\ to\ commit\ but\ untracked\ files\ present ]]; then
-	local git_color=$red
+	local git_color="$red"
     else
-	local git_color=$yellow
+	local git_color="$yellow"
     fi
     if [[ "$git_status" =~ On\ branch\ ([^[:space:]]+) ]]; then
 	branch=${BASH_REMATCH[1]}
     else
-	branch="(`git describe --all --contains --abbrev=4 HEAD 2> /dev/null || echo HEAD`)"
+	branch="($(git describe --all --contains --abbrev=4 HEAD 2> /dev/null || echo HEAD))"
     fi
     echo -n "$sep_color($git_color$branch$sep_color)"
 }
 
-function svn_prompt() {
-    local svn_status=`svn status -q | grep ^M`
-    local svn_string=`svnversion`
+function _svn_prompt() {
+
+    # Returns a formatted and colorized string containing version and status
+    local svn_color
+    local svn_status
+    local svn_string
+    svn_status="$(svn status -q | grep ^M)"
+    svn_string="$(svnversion)"
     if [[ -z "$svn_status" ]]; then
-        local svn_color=$green
+        svn_color=$green
     else
-        local svn_color=$yellow
+        svn_color=$yellow
     fi
     echo -n "$sep_color($svn_color$svn_string$sep_color)"
 }
