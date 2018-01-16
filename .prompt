@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# shellcheck disable=SC2034
+
 IFS=$' \n\t'
 
 # Set the prompt to include basic version control information and directory
@@ -59,7 +61,7 @@ function prompt_command() {
 
     local full_pwd
     local cmd_color
-    full_pwd="$(pwd -P)"
+    full_pwd=$(pwd -P)
     cmd_color=""
     if [ "$cmd_status" != 0 ]; then
         cmd_color="$light_red"
@@ -72,10 +74,10 @@ function prompt_command() {
 
     # if a git repo, set the string for color, branch name, and status
     local vcs_string
-    if ! [[ "$(git status -unormal 2>&1)" =~ Not\ a\ git\ repo ]]; then
-        vcs_string="$(_git_prompt)"
-    elif ! [[ "$(svn info "$full_pwd" 2>&1)" =~ not\ a\ working\ copy ]]; then
-        vcs_string="$(_svn_prompt)"
+    if ! [[ $(git status -unormal 2>&1) =~ Not\ a\ git\ repo ]]; then
+        vcs_string=$(_git_prompt)
+    elif ! [[ $(svn info "$full_pwd" 2>&1) =~ not\ a\ working\ copy ]]; then
+        vcs_string=$(_svn_prompt)
     else
         vcs_string=""
     fi
@@ -105,7 +107,7 @@ function _git_prompt() {
 
     # Returns a formatted and colorized string containing branch name and status
     local git_status
-    git_status="$(git status -unormal 2>&1)"
+    git_status=$(git status -unormal 2>&1)
     if [[ "$git_status" =~ nothing\ to\ commit ]]; then
 	local git_color="$green"
     elif [[ "$git_status" =~ nothing\ added\ to\ commit\ but\ untracked\ files\ present ]]; then
@@ -127,8 +129,8 @@ function _svn_prompt() {
     local svn_color
     local svn_status
     local svn_string
-    svn_status="$(svn status -q | grep ^M)"
-    svn_string="$(svnversion)"
+    svn_status=$(svn status -q | grep ^M)
+    svn_string=$(svnversion)
     if [[ -z "$svn_status" ]]; then
         svn_color=$green
     else
