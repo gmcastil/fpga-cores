@@ -2,10 +2,6 @@
 
 # shellcheck disable=SC2034
 
-# shellcheck disable=SC2034
-
-IFS=$' \n\t'
-
 # Set the prompt to include basic version control information and directory
 # navigation information.  In general, to change the default color and format,
 # edit the corresponding strings (e.g., $cmd_string) rather than adding onto
@@ -20,40 +16,74 @@ IFS=$' \n\t'
 # fi
 #
 
-# Username     - green
-# Hostname     - green
+# Username     - cyan
+# Hostname     - cyan
 # Datetime     - purple
-# Error status - green or red
+# Error status - gray or red depening on previous result
 # VCS status   - green, yellow or red depending on status
 # Pathname     - cyan
 #
 # username@hostname {datetime} [?] (VCS) /absolute/path/to/pwd
 # $
 
-# These are not all the combinations available, but it should still be
-# enough to support the desired combinations
-black='\[\033[0;30m\]'
-red='\[\033[0;31m\]'
-green='\[\033[0;32m\]'
-yellow='\[\033[0;33m\]'
-blue='\[\033[0;34m\]'
-purple='\[\033[0;35m\]'
-cyan='\[\033[0;36m\]'
-light_gray='\[\033[0;37m\]'
+# System colors
+black='\e[0;38;5;00m'
+maroon='\e[0;38;5;01m'
+green='\e[0;38;5;02m'
+olive='\e[0;38;5;03m'
+navy='\e[0;38;5;04m'
+purple='\e[0;38;5;05m'
+teal='\e[0;38;5;06m'
+silver='\e[0;38;5;07m'
+grey='\e[0;38;5;08m'
+red='\e[0;38;5;09m'
+lime='\e[0;38;5;10m'
+yellow='\e[0;38;5;11m'
+blue='\e[0;38;5;12m'
+fuchsia='\e[0;38;5;13m'
+aqua='\e[0;38;5;14m'
+white='\e[0;38;5;15m'
 
-dark_gray='\[\033[1;30m\]'  # solarized dark background
-light_red='\[\033[1;31m\]'
-light_green='\[\033[1;32m\]'  # dark grey
-light_yellow='\[\033[1;33m\]'  # medium grey
-light_blue='\[\033[1;34m\]'  # brighter grey
-light_purple='\[\033[1;35m\]'
-light_cyan='\[\033[1;36m\]'
-white='\[\033[1;37m\]'
+# More exotic colors - use X11 names and then reassign to more generic names
+dark_cyan='\e[0;38;5;36m'
+cyan1='\e[0;38;5;51m'
+cyan2='\e[0;38;5;50m'
+cyan3='\e[0;38;5;43m'
+cyan="$dark_cyan"
 
-no_color='\[\033[0m\]'
+grey0='\e[0;38;5;16m'
+grey3='\e[0;38;5;232m'
+grey7='\e[0;38;5;233m'
+grey11='\e[0;38;5;234m'
+grey15='\e[0;38;5;235m'
+grey19='\e[0;38;5;236m'
+grey23='\e[0;38;5;237m'
+grey27='\e[0;38;5;238m'
+grey30='\e[0;38;5;239m'
+grey35='\e[0;38;5;240m'
+grey39='\e[0;38;5;241m'
+grey42='\e[0;38;5;242m'
+grey46='\e[0;38;5;243m'
+grey50='\e[0;38;5;244m'
+grey54='\e[0;38;5;245m'
+grey58='\e[0;38;5;246m'
+grey62='\e[0;38;5;247m'
+grey66='\e[0;38;5;248m'
+grey70='\e[0;38;5;249m'
+grey74='\e[0;38;5;250m'
+grey78='\e[0;38;5;251m'
+grey82='\e[0;38;5;252m'
+grey85='\e[0;38;5;253m'
+grey89='\e[0;38;5;254m'
+grey93='\e[0;38;5;255m'
+
+purple3='\e[0;38;5;56m'
+purple4='\e[0;38;5;54m'
+mediumpurple3='\e[0;38;5;97m'
 
 # Define the color for things like @, [, ( in one place
-sep_color=$light_green
+sep_color="$grey35"
+date_color="$mediumpurple3"
 
 function prompt_command() {
 
@@ -66,9 +96,9 @@ function prompt_command() {
     full_pwd=$(pwd -P)
     cmd_color=""
     if [ "$cmd_status" != 0 ]; then
-        cmd_color="$light_red"
+        cmd_color="$red"
     else
-        cmd_color="$cyan"
+        cmd_color="$grey"
     fi
 
     local cmd_string
@@ -93,13 +123,13 @@ function prompt_command() {
     host_string="$cyan\\u$sep_color@$cyan\\h"
 
     # Resolve all symbolic lengths, regardless of how deep it goes
-    path_string="$light_cyan$full_pwd"
+    path_string="$white$full_pwd"
 
     # Set the time string
-    time_string="$sep_color{$purple\\D{%F %T}$sep_color}"
+    time_string="$sep_color{$date_color\\D{%F %T}$sep_color}"
 
     # Embed the linefeed here
-    stem_string="\\n$sep_color\\$ $no_color"
+    stem_string="\\n$grey35\\$ $no_color"
 
     PS1="$host_string $time_string $cmd_string $vcs_string $path_string $stem_string"
     export PS1
@@ -134,9 +164,9 @@ function _svn_prompt() {
     svn_status=$(svn status -q | grep ^M)
     svn_string=$(svnversion)
     if [[ -z "$svn_status" ]]; then
-        svn_color=$green
+        svn_color="$green"
     else
-        svn_color=$yellow
+        svn_color="$yellow"
     fi
     echo -n "$sep_color($svn_color$svn_string$sep_color)"
 }
