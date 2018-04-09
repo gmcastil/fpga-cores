@@ -84,6 +84,7 @@ mediumpurple3='\e[0;38;5;97m'
 # Define the color for things like @, [, ( in one place
 sep_color="$grey35"
 date_color="$mediumpurple3"
+no_color="\[\033[0m\]"
 
 function prompt_command() {
 
