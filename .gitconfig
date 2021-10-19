@@ -1,12 +1,13 @@
 [user]
-	email = name@email.com
-	name = Name
+	email        = name@email.com
+	name         = Name
 
 [color]
-	ui = auto
+	ui           = auto
 
 [core]
 	excludesfile = ~/.gitignore
+	editor       = /usr/bin/vim
 
 [github]
-	user = name
+	user         = name
