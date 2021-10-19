@@ -1,175 +1,54 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-# shellcheck disable=SC2034
-
-# Set the prompt to include basic version control information and directory
-# navigation information.  In general, to change the default color and format,
-# edit the corresponding strings (e.g., $cmd_string) rather than adding onto
-# the definition for $PS1 in the prompt_command() function.  Naturally, this
-# also assumes that the appropriate executables are in $PATH.  To use this at
-# startup, put something similar to the following in your .bashrc:
 #
-# if [[ -f ~/.prompt ]]; then
-#     source ~/.prompt
-# else
-#     export PS1='\u@\h \$ '
-# fi
+# Create a prompt with the following characteristics
 #
-
-# Username     - cyan
-# Hostname     - cyan
-# Datetime     - purple
-# Error status - gray or red depening on previous result
-# VCS status   - green, yellow or red depending on status
-# Pathname     - cyan
+#   username@hostname [hist_no] {timestamp} [?] (versioning) /absolute/path/to/pwd
+#   $
 #
-# username@hostname {datetime} [?] (VCS) /absolute/path/to/pwd
-# $
+# TODO:
+#   Add colorization of the last return value
+# TODO:
+#   This needs to be made Zsh compatible to handle being run on Mac OS or something
+#   of that nature.  Might need to do something like have .bash_prompt or .zsh_prompt.
+# TODO:
+#   Add colorization of the timestamp, username, hostname, history number
+# TODO:
+#   Signify if there are cached sudo credentials
+# TODO:
+#   Add version control and branch names 
 
-# System colors
-black='\e[0;38;5;00m'
-maroon='\e[0;38;5;01m'
-green='\e[0;38;5;02m'
-olive='\e[0;38;5;03m'
-navy='\e[0;38;5;04m'
-purple='\e[0;38;5;05m'
-teal='\e[0;38;5;06m'
-silver='\e[0;38;5;07m'
-grey='\e[0;38;5;08m'
-red='\e[0;38;5;09m'
-lime='\e[0;38;5;10m'
-yellow='\e[0;38;5;11m'
-blue='\e[0;38;5;12m'
-fuchsia='\e[0;38;5;13m'
-aqua='\e[0;38;5;14m'
-white='\e[0;38;5;15m'
+function prompt_command () {
 
-# More exotic colors - use X11 names and then reassign to more generic names
-dark_cyan='\e[0;38;5;36m'
-cyan1='\e[0;38;5;51m'
-cyan2='\e[0;38;5;50m'
-cyan3='\e[0;38;5;43m'
-cyan="$dark_cyan"
+  # Save last return value since following commands will trample it
+  local last_retval=$?
 
-grey0='\e[0;38;5;16m'
-grey3='\e[0;38;5;232m'
-grey7='\e[0;38;5;233m'
-grey11='\e[0;38;5;234m'
-grey15='\e[0;38;5;235m'
-grey19='\e[0;38;5;236m'
-grey23='\e[0;38;5;237m'
-grey27='\e[0;38;5;238m'
-grey30='\e[0;38;5;239m'
-grey35='\e[0;38;5;240m'
-grey39='\e[0;38;5;241m'
-grey42='\e[0;38;5;242m'
-grey46='\e[0;38;5;243m'
-grey50='\e[0;38;5;244m'
-grey54='\e[0;38;5;245m'
-grey58='\e[0;38;5;246m'
-grey62='\e[0;38;5;247m'
-grey66='\e[0;38;5;248m'
-grey70='\e[0;38;5;249m'
-grey74='\e[0;38;5;250m'
-grey78='\e[0;38;5;251m'
-grey82='\e[0;38;5;252m'
-grey85='\e[0;38;5;253m'
-grey89='\e[0;38;5;254m'
-grey93='\e[0;38;5;255m'
+  # Username and hostname
+  local user_host="\u@\h"
+  local fmt_user_host=${user_host}
 
-purple3='\e[0;38;5;56m'
-purple4='\e[0;38;5;54m'
-mediumpurple3='\e[0;38;5;97m'
+  # Command history string
+  local hist="\!"
+  local fmt_hist=[${hist}]
 
-# Define the color for things like @, [, ( in one place
-sep_color="$grey35"
-date_color="$mediumpurple3"
-no_color="\[\033[0m\]"
+  # Timestamp string
+  local timestamp="\D{%Y-%m-%d %H:%M:%S}"
+  local fmt_timestamp="{${timestamp}}"
 
-function prompt_command() {
+  # Return value string
+  local fmt_last_retval=[${last_retval}]
 
-    # Determine color encoding for the command status - this has to be the
-    # first line in the function to catch the command status
-    local cmd_status="$?"
+  # Version control string
+  local fmt_vcs=
 
-    local full_pwd
-    local cmd_color
-    full_pwd=$(pwd -P)
-    cmd_color=""
-    if [ "$cmd_status" != 0 ]; then
-        cmd_color="$red"
-    else
-        cmd_color="$grey"
-    fi
+  # PWD string - this may only be valid on bash or zsh
+  local unsym_pwd
+  unsym_pwd=$(builtin pwd -P)
+  local fmt_pwd=${unsym_pwd}
 
-    local cmd_string
-    cmd_string="$sep_color[$cmd_color$cmd_status$sep_color]"
+  # Composite PS1 expression to use
+  PS1="${fmt_user_host} ${fmt_hist} ${fmt_timestamp} ${fmt_last_retval} ${fmt_vcs} ${fmt_pwd}\r\n\$ "
 
-    # if a git repo, set the string for color, branch name, and status
-    local vcs_string
-    if ! [[ $(git status -unormal 2>&1) =~ Not\ a\ git\ repo ]]; then
-        vcs_string=$(_git_prompt)
-    elif ! [[ $(svn info "$full_pwd" 2>&1) =~ not\ a\ working\ copy ]]; then
-        vcs_string=$(_svn_prompt)
-    else
-        vcs_string=""
-    fi
-
-    local host_string
-    local path_string
-    local time_string
-    local stem_string
-
-    # Determine color and formatting for the hostname and user
-    host_string="$cyan\\u$sep_color@$cyan\\h"
-
-    # Resolve all symbolic lengths, regardless of how deep it goes
-    path_string="$white$full_pwd"
-
-    # Set the time string
-    time_string="$sep_color{$date_color\\D{%F %T}$sep_color}"
-
-    # Embed the linefeed here
-    stem_string="\\n$grey35\\$ $no_color"
-
-    PS1="$host_string $time_string $cmd_string $vcs_string $path_string $stem_string"
-    export PS1
-}
-
-function _git_prompt() {
-
-    # Returns a formatted and colorized string containing branch name and status
-    local git_status
-    git_status=$(git status -unormal 2>&1)
-    if [[ "$git_status" =~ nothing\ to\ commit ]]; then
-	local git_color="$green"
-    elif [[ "$git_status" =~ nothing\ added\ to\ commit\ but\ untracked\ files\ present ]]; then
-	local git_color="$red"
-    else
-	local git_color="$yellow"
-    fi
-    if [[ "$git_status" =~ On\ branch\ ([^[:space:]]+) ]]; then
-	branch=${BASH_REMATCH[1]}
-    else
-	branch="($(git describe --all --contains --abbrev=4 HEAD 2> /dev/null || echo HEAD))"
-    fi
-    echo -n "$sep_color($git_color$branch$sep_color)"
-}
-
-function _svn_prompt() {
-
-    # Returns a formatted and colorized string containing version and status
-    local svn_color
-    local svn_status
-    local svn_string
-    svn_status=$(svn status -q | grep ^M)
-    svn_string=$(svnversion)
-    if [[ -z "$svn_status" ]]; then
-        svn_color="$green"
-    else
-        svn_color="$yellow"
-    fi
-    echo -n "$sep_color($svn_color$svn_string$sep_color)"
 }
 
 export PROMPT_COMMAND=prompt_command
