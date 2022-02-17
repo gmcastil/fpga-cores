@@ -7,8 +7,6 @@
 #   $
 #
 # TODO:
-#   Add colorization of the last return value
-# TODO:
 #   This needs to be made Zsh compatible to handle being run on Mac OS or something
 #   of that nature.  Might need to do something like have .bash_prompt or .zsh_prompt.
 # TODO:
