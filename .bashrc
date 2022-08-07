@@ -13,19 +13,6 @@ tcl () {
     fi
 }
 
-# Colorize man pages
-man() {
-    env \
-        LESS_TERMCAP_mb=$(printf "\e[1;31m") \
-        LESS_TERMCAP_md=$(printf "\e[1;31m") \
-        LESS_TERMCAP_me=$(printf "\e[0m") \
-        LESS_TERMCAP_se=$(printf "\e[0m") \
-        LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
-        LESS_TERMCAP_ue=$(printf "\e[0m") \
-        LESS_TERMCAP_us=$(printf "\e[1;32m") \
-        man "$@"
-}
-
 # -- Set Bash Options
 
 HISTSIZE=100000  # Disk space is cheap
@@ -60,8 +47,9 @@ if [[ -f $HOME/.prompt ]]; then
     source $HOME/.prompt
 fi
 
+# The coreutils package on Ubuntu 20.04 has started wrapping strings in its
+# output with single quotes (') for reasons that are completely beyond me. Fix
+# this behavior in interactie shells and set the quoting style to be literal.
+# Yet another reason to never parse the output of the 'ls' command
+export QUOTING_STYLE=literal
 
-# Finally, augment everything with whatever is required for EDA tools
-if [[ -f $HOME/.toolsrc ]]; then
-    source $HOME/.toolsrc
-fi
