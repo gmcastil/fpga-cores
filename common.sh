@@ -44,7 +44,6 @@ function confirm_tools () {
 
   # If none of these exit out, we should be safe to export them to the calling
   # environment afterwards
-  builtin printf "Checking for basic tools\n"
   set -o errexit
   DATE="$(_find_tool_path date)"
   LN="$(_find_tool_path ln)"

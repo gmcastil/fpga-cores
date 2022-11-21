@@ -8,4 +8,33 @@ if [[ -f common.sh ]]; then
   source common.sh
 fi
 
+# GNU Linux set up
+
+# Refuse to continue if any of the files of interest exist
+# Create symlinks for .profile, .bash_profile, .bashrc, and any others that need
+# to be made
+
+SHELL_FILES=("profile" "bash_profile" "bashrc" "aliases")
+
+# Check to see if an existing configuration already exist
+function check_existing_config () {
+  local files_to_check
+  files_to_check=("${@}")
+  for f in "${files_to_check[@]}"; do
+    if [[ -f "${HOME}/.${f}" ]]; then
+      err "${HOME}/.${f} already exists. Remove or rename it."
+    fi
+  done
+}
+
+function link_config () {
+  local files_to_link
+  files_to_link=("${@}")
+  for f in "${files_to_link[@]}"; do
+    "${LN}" -v -s -r "shell/${f}" "${HOME}/.${f}"
+  done
+}
+
+check_existing_config "${SHELL_FILES[@]}"
+link_config "${SHELL_FILES[@]}"
 
