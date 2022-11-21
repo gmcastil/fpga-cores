@@ -1,0 +1,7 @@
+# For all other items that are set for interactive, non-login shells we look to
+# .bashrc instead.  Note that on OS X, the Terminal app runs a login shell for
+# every tab or window that is opened
+if [[ -f "${HOME}/.bashrc" ]]; then
+  source "${HOME}/.bashrc"
+fi
+

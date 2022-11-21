@@ -1,0 +1,7 @@
+# Intended to be sourced into a running interactive login (via ~/.bash_profile)
+# or non-login shell (via ~/.bashrc)
+alias ls='ls --group-directories-first --color=auto'
+alias ll='ls -lh'
+alias rm='rm -v'
+alias cp='cp -v'
+alias mv='mv -v'

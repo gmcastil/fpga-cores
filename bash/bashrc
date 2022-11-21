@@ -1,0 +1,27 @@
+# -- Aliases
+if [[ -f "${HOME}/.bash_aliases" ]]; then
+  source "${HOME}/.bash_aliases"
+fi
+
+# -- Set prompt command
+if [[ -f "${HOME}/.prompt" ]]; then
+  source "${HOME}/.prompt"
+fi
+
+# -- Path Manipulation
+if [[ -d "${HOME}/scripts" ]]; then
+  PATH="${PATH}:${HOME}/scripts"
+  export PATH
+fi
+
+# -- List Directory Colors
+if [[ -x /usr/bin/dircolors ]]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+fi
+
+# The coreutils package on Ubuntu 20.04 has started wrapping strings in its
+# output with single quotes (') for reasons that are completely beyond me. Fix
+# this behavior in interactie shells and set the quoting style to be literal.
+# Yet another reason to never parse the output of the 'ls' command
+export QUOTING_STYLE=literal
+
