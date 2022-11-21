@@ -1,5 +1,5 @@
-echo "running profile"
-
 PATH=/bin:/usr/bin:/usr/local/bin:/snap/bin
-export PATH
+EDITOR="vim"
 
+export PATH
+export EDITOR
