@@ -15,6 +15,7 @@ fi
 # to be made
 
 SHELL_FILES=("profile" "bash_profile" "bashrc" "aliases")
+OTHER_FILES=("prompt" "dircolors")
 
 # Check to see if an existing configuration already exist
 function check_existing_config () {
@@ -27,7 +28,7 @@ function check_existing_config () {
   done
 }
 
-function link_config () {
+function link_shell_config () {
   local files_to_link
   files_to_link=("${@}")
   for f in "${files_to_link[@]}"; do
@@ -35,6 +36,17 @@ function link_config () {
   done
 }
 
+function link_other_config () {
+  local files_to_link
+  files_to_link=("${@}")
+  for f in "${files_to_link[@]}"; do
+    "${LN}" -v -s -r "other/${f}" "${HOME}/.${f}"
+  done
+}
+
 check_existing_config "${SHELL_FILES[@]}"
-link_config "${SHELL_FILES[@]}"
+check_existing_config "${OTHER_FILES[@]}"
+
+link_shell_config "${SHELL_FILES[@]}"
+link_other_config "${OTHER_FILES[@]}"
 

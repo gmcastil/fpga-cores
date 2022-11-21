@@ -1,17 +1,11 @@
 # -- Aliases
-if [[ -f "${HOME}/.bash_aliases" ]]; then
-  source "${HOME}/.bash_aliases"
+if [[ -f "${HOME}/.aliases" ]]; then
+  source "${HOME}/.aliases"
 fi
 
 # -- Set prompt command
 if [[ -f "${HOME}/.prompt" ]]; then
   source "${HOME}/.prompt"
-fi
-
-# -- Path Manipulation
-if [[ -d "${HOME}/scripts" ]]; then
-  PATH="${PATH}:${HOME}/scripts"
-  export PATH
 fi
 
 # -- List Directory Colors
