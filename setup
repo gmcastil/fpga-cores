@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Sets up configuration files for a freshly created user account
+
+# Source some common functions and make sure that commonly used tools are
+# present somewhere on the system and can be executed by the current user
+if [[ -f common.sh ]]; then
+  source common.sh
+fi
+
+
