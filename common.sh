@@ -51,6 +51,7 @@ function confirm_tools () {
   PRINTF="$(_find_tool_path printf)"
   MKDIR="$(_find_tool_path mkdir)"
   RM="$(_find_tool_path rm)"
+  UNAME="$(_find_tool_path uname)"
   set +o errexit
 
   # Wait to export these once we've verified everything is here so we don't
@@ -60,6 +61,7 @@ function confirm_tools () {
   export SED
   export PRINTF
   export MKDIR
+  export UNAME
   export RM
 
   return 0
