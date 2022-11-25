@@ -8,7 +8,10 @@ if [[ -f common.sh ]]; then
   source common.sh
 fi
 
-# GNU Linux set up
+PLATFORM="$("${UNAME}" -s)"
+if [[ "${PLATFORM}" -ne 'Darwin' || "${PLATFORM}" -ne 'Linux' ]]; then
+  err "Mac OS or Linux are the only supported platforms"
+fi
 
 # Refuse to continue if any of the files of interest exist
 # Create symlinks for .profile, .bash_profile, .bashrc, and any others that need
@@ -32,7 +35,11 @@ function link_shell_config () {
   local files_to_link
   files_to_link=("${@}")
   for f in "${files_to_link[@]}"; do
-    "${LN}" -v -s -r "shell/${f}" "${HOME}/.${f}"
+    if [[ "${PLATFORM}" == "Darwin" ]]; then
+      "${LN}" -v -s "${PWD}/shell/${f}" "${HOME}/.${f}"
+    elif [[ "${PLATFORM}" == "Linux" ]]; then
+      "${LN}" -v -s -r "shell/${f}" "${HOME}/.${f}"
+    fi
   done
 }
 
@@ -40,7 +47,11 @@ function link_other_config () {
   local files_to_link
   files_to_link=("${@}")
   for f in "${files_to_link[@]}"; do
-    "${LN}" -v -s -r "other/${f}" "${HOME}/.${f}"
+    if [[ "${PLATFORM}" == "Darwin" ]]; then
+      "${LN}" -v -s "${PWD}/other/${f}" "${HOME}/.${f}"
+    elif [[ "${PLATFORM}" == "Linux" ]]; then
+      "${LN}" -v -s -r "other/${f}" "${HOME}/.${f}"
+    fi
   done
 }
 
