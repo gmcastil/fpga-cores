@@ -8,8 +8,13 @@ if [[ -f common.sh ]]; then
   source common.sh
 fi
 
-PLATFORM="$("${UNAME}" -s)"
-if [[ "${PLATFORM}" -ne 'Darwin' || "${PLATFORM}" -ne 'Linux' ]]; then
+case "$("${UNAME}" -s)" in
+  'Linux'*)  PLATFORM=Linux;;
+  'Darwin'*) PLATFORM=Darwin;;
+  *)         PLATFORM=;;
+esac
+
+if [[ "${PLATFORM}" -eq "" ]]; then
   err "Mac OS or Linux are the only supported platforms"
 fi
 
