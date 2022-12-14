@@ -1,6 +1,21 @@
 # Intended to be sourced into a running interactive login (via ~/.bash_profile)
 # or non-login shell (via ~/.bashrc)
-alias ls='ls --group-directories-first --color=auto'
+#
+# Note that some of these are platform specific and depend upon PLATFORM being
+# set to either Linux or Darwin.  If neither, then do something simple or unalias
+# the command
+
+case "${PLATFORM}" in
+  'Linux')
+    alias ls='ls --group-directories-first --color=auto';;
+
+  'Darwin')
+    alias ls='ls -G';;
+
+  *)
+    unalias ls
+esac
+
 alias ll='ls -lh'
 alias rm='rm -v'
 alias cp='cp -v'

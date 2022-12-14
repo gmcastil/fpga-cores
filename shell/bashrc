@@ -1,3 +1,19 @@
+# -- Exports
+#
+# Other login files (e.g., .aliases) are platform specific, so we try to
+# determine the platform we're operating on upon login
+UNAME=$(command -v uname)
+PLATFORM="$("${UNAME}" -s)"
+if [[ "${PLATFORM}" == "Linux" || "${PLATFORM}" == "Darwin" ]]; then
+  export PLATFORM
+fi
+
+# The coreutils package on Ubuntu 20.04 has started wrapping strings in its
+# output with single quotes (') for reasons that are completely beyond me. Fix
+# this behavior in interactie shells and set the quoting style to be literal.
+# Yet another reason to never parse the output of the 'ls' command
+export QUOTING_STYLE=literal
+
 # -- Aliases
 if [[ -f "${HOME}/.aliases" ]]; then
   source "${HOME}/.aliases"
@@ -13,9 +29,6 @@ if [[ -x /usr/bin/dircolors ]]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 
-# The coreutils package on Ubuntu 20.04 has started wrapping strings in its
-# output with single quotes (') for reasons that are completely beyond me. Fix
-# this behavior in interactie shells and set the quoting style to be literal.
-# Yet another reason to never parse the output of the 'ls' command
-export QUOTING_STYLE=literal
-
+# These do not need to be inherited by the interactive environment
+unset UNAME
+unset PLATFORM

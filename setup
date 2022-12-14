@@ -14,7 +14,7 @@ case "$("${UNAME}" -s)" in
   *)         PLATFORM=;;
 esac
 
-if [[ "${PLATFORM}" -eq "" ]]; then
+if [[ "${PLATFORM}" == "" ]]; then
   err "Mac OS or Linux are the only supported platforms"
 fi
 

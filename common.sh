@@ -50,8 +50,8 @@ function confirm_tools () {
   SED="$(_find_tool_path sed)"
   PRINTF="$(_find_tool_path printf)"
   MKDIR="$(_find_tool_path mkdir)"
-  RM="$(_find_tool_path rm)"
   UNAME="$(_find_tool_path uname)"
+  RM="$(_find_tool_path rm)"
   set +o errexit
 
   # Wait to export these once we've verified everything is here so we don't
