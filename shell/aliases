@@ -13,7 +13,7 @@ case "${PLATFORM}" in
     alias ls='ls -G';;
 
   *)
-    unalias ls
+    alias ls='ls';;
 esac
 
 alias ll='ls -lh'

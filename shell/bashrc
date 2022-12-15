@@ -1,16 +1,19 @@
-# -- Exports
+# -- Temporary exports
 #
 # Other login files (e.g., .aliases) are platform specific, so we try to
-# determine the platform we're operating on upon login
+# determine the platform we're operating on upon login and then export it so
+# that other login scripts are aware and can act accordingly.
 UNAME=$(command -v uname)
 PLATFORM="$("${UNAME}" -s)"
 if [[ "${PLATFORM}" == "Linux" || "${PLATFORM}" == "Darwin" ]]; then
   export PLATFORM
 fi
 
+# -- Exports for interactive shells
+#
 # The coreutils package on Ubuntu 20.04 has started wrapping strings in its
 # output with single quotes (') for reasons that are completely beyond me. Fix
-# this behavior in interactie shells and set the quoting style to be literal.
+# this behavior in interactive shells and set the quoting style to be literal.
 # Yet another reason to never parse the output of the 'ls' command
 export QUOTING_STYLE=literal
 
