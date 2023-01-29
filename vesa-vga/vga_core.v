@@ -7,7 +7,6 @@ module vga_core #(
   // timing values
   input   wire            pxl_clk,
   input   wire            pxl_rst,
-  input   wire            enable,
 
   // Horizontal front and back porch durations and horizontal sync length
   // should be defined in integer numbers of pixel clocks
@@ -23,15 +22,51 @@ module vga_core #(
   input   wire  [31:0]    vert_back,
   input   wire  [31:0]    vert_sync_len,
 
+  // These two signals are used to indicate the polarities of the hsync and vsync
+  // outputs when they are pulsed (i.e., set to 1 for positive and 0 for
+  // negative)
+  input   wire            hsync_pol,
+  input   wire            vsync_pol,
+
+  // This is probably not a good way to think about the output because a) I have
+  // no input data yet and b) I've got a 12-bit RGB output to drive, so this
+  // interface is going to change
   output  wire  [2:0]     rgb_video,
-  output  wire            hsync,
-  output  wire            vsync
+  output  reg             hsync,
+  output  reg             vsync
 );
 
-  // Generate the HSYNC and VSYNC pulses
+  localparam  integer   RED   = 0;
+  localparam  integer   GREEN = 1;
+  localparam  integer   BLUE  = 2;
+
+  localparam    [7:0]   HSTATE_FRONT   = 8'd0;
+  localparam    [7:0]   HSTATE_HSYNC   = 8'd1;
+  localparam    [7:0]   HSTATE_BACK    = 8'd2;
+  localparam    [7:0]   HSTATE_LINE    = 8'd3;
+
+  reg   rgb_red;
+  reg   rgb_blue;
+  reg   rgb_green;
+
+  // Create counters to use for both dimensions
+  reg   [31:0]    hoz_cnt;
+  reg   [31:0]    vert_cnt;
+
+  reg   [31:0]    hstate;
+
+  assign rgb_video[RED]   = rgb_red;
+  assign rgb_video[GREEN] = rgb_green;
+  assign rgb_video[BLUE]  = rgb_blue;
+
   always @(posedge pxl_clk) begin
     if ( pxl_rst == 1'b1 ) begin
+      hstate      <= HSTATE_FRONT;
+      hsync       <= ~hsync_pol;
     end else begin
+
+      case (hstate)
+
     end
   end
 
@@ -42,10 +77,13 @@ module vga_core #(
       ila_vga_core_i0 (
         .clk        (pxl_clk),
         .probe0     (rst),
-        .probe1     (hsync)
+        .probe1     (hsync),
+        .probe2     (vsync),
+        .probe3     (rgb_red),
+        .probe4     (rgb_green),
+        .probe6     (rgb_blue)
       );
     end
   endgenerate
-
-  endmodule
+endmodule
 
