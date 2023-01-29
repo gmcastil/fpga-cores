@@ -1,0 +1,78 @@
+# Configuration file for dircolors
+
+TERM xterm-256color
+
+# Below are the color init strings for the basic file types. A color init
+# string consists of one or more of the following numeric codes:
+# Attribute codes:
+# 00=none 01=bold 04=underscore 05=blink 07=reverse 08=concealed
+# Text color codes:
+# 30=black 31=red 32=green 33=yellow 34=blue 35=magenta 36=cyan 37=white
+# Background color codes:
+# 40=black 41=red 42=green 43=yellow 44=blue 45=magenta 46=cyan 47=white
+
+NORMAL                00
+FILE                  00
+RESET                 0
+DIR                   00;38;5;69
+LINK                  00;36
+MULTIHARDLINK         00
+FIFO                  40;33
+SOCK                  01;35
+DOOR                  01;35
+BLK                   40;33;01
+CHR                   40;33;01
+ORPHAN                40;31;01
+SETUID                37;41
+SETGID                30;43
+CAPABILITY            30;41
+STICKY_OTHER_WRITABLE 30;42
+OTHER_WRITABLE        34;42
+STICKY                37;44
+# EXEC                  01;32
+
+# Define how individual files and directories should be colorized
+# -- Source Code
+  .v            38;5;136
+  .vh           38;5;136
+  .vhd          38;5;136
+  .sv           38;5;136
+  .svh          38;5;136
+  .c            38;5;136
+  .h            38;5;136
+  .cpp          38;5;136
+  .py           38;5;136
+
+# -- Image and Media
+  .avi          38;5;1
+  .bmp          38;5;1
+  .gif          38;5;1
+  .jpg          38;5;1
+  .jpeg         38;5;1
+  .png          38;5;1
+  .mov          38;5;1
+  .m3u8         38;5;1
+  .mpg          38;5;1
+  .mp3          38;5;1
+  .mp4          38;5;1
+  .mkv          38;5;1
+  .wmv          38;5;1
+  .ogg          38;5;1
+  .wav          38;5;1
+
+# -- Archives
+  .dll          38;5;196
+  .tbz          38;5;196
+  .tar          38;5;196
+  .tgz          38;5;196
+  .gz           38;5;196
+  .rpm          38;5;196
+  .deb          38;5;196
+  .zip          38;5;196
+  .Z            38;5;196
+  .gz           38;5;196
+  .bz2          38;5;196
+  .xz           38;5;196
+
+# -- Files
+  .gitignore    38;5;240
