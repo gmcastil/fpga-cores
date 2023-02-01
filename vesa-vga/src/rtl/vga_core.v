@@ -36,129 +36,152 @@ module vga_core #(
   output  reg             vsync
 );
 
-  localparam    [7:0]   HSTATE_RESET  = 8'hFF;
-  localparam    [7:0]   HSTATE_FRONT  = 8'h00;
-  localparam    [7:0]   HSTATE_HSYNC  = 8'h01;
-  localparam    [7:0]   HSTATE_BACK   = 8'h02;
-  localparam    [7:0]   HSTATE_LINE   = 8'h03;
+  // synthesis translate_off
+  reg [((8*10)-1):0]       hstate_ascii;
+  always @(*) begin
+    case (hstate)
+      RESET:      begin hstate_ascii = "   RESET  "; end
+      HFP_WAIT:   begin hstate_ascii = " HFP_WAIT "; end
+      HSYNC:      begin hstate_ascii = "   HSYNC  "; end
+      HBP_WAIT:   begin hstate_ascii = " HBP_WAIT "; end
+      HACTIVE:    begin hstate_ascii = "  HACTIVE "; end
+      FRAME_SYNC: begin hstate_ascii = "FRAME_SYNC"; end
+      default:  begin end
+    endcase
+  end
+  // synthesis translate_on
 
-  localparam    [7:0]   VSTATE_RESET  = 8'hFF;
-  localparam    [7:0]   VSTATE_FRONT  = 8'h00;
-  localparam    [7:0]   VSTATE_HSYNC  = 8'h01;
-  localparam    [7:0]   VSTATE_BACK   = 8'h02;
-  localparam    [7:0]   VSTATE_LINE   = 8'h03;
+  localparam    [7:0]   RESET         = 8'h00;
+	localparam		[7:0]		HFP_WAIT			= 8'h01;
+	localparam		[7:0]		HSYNC					= 8'h02;
+	localparam		[7:0]		HBP_WAIT			= 8'h03;
+	localparam		[7:0]		HACTIVE				= 8'h04;
+  localparam    [7:0]   FRAME_SYNC    = 8'h05;
 
   // Create counters to use for both dimensions - note that generally, the
   // horizontal counter will be used to count pixels, while the vertical counter
   // is used to count horizontal lines.
   reg   [31:0]    horiz_cnt;
-  reg   [31:0]    vert_cnt;
-
-  reg   [31:0]    line_cnt;
-
+  reg   [31:0]    hsync_cnt;
+  reg             frame_start;
   reg   [7:0]     hstate;
-  reg   [7:0]     vstate;
 
-  // Define a state machine to create HSYNC pulse based on the provided
-  // timing values
+  reg             hactive;
+  reg             vactive;
+
   always @(posedge pxl_clk) begin
     if ( pxl_rst == 1'b1 ) begin
-      hstate            <= HSTATE_RESET;
-      hsync             <= ~hsync_pol;
+      hsync           <= ~hsync_pol;
+      vsync           <= ~vsync_pol;
+			horiz_cnt		    <= 32'd0;
+      hstate          <= RESET;
+      frame_start     <= 1'b0;
+      hactive         <= 1'b1;
     end else begin
 
       case (hstate)
 
-        HSTATE_RESET: begin
-          hstate          <= HSTATE_FRONT;
-          hsync           <= ~hsync_pol;
-          horiz_cnt       <= 32'd0;
-          line_cnt        <= 32'd0;
+        RESET: begin
+          hsync       <= ~hsync_pol;
+          vsync       <= ~vsync_pol;
+					horiz_cnt		<= 32'd0;
+          hstate      <= FRAME_SYNC;
+          hactive     <= 1'b0;
         end
 
-        HSTATE_FRONT: begin
-          line_cnt        <= line_cnt;
-          if ( horiz_cnt == horiz_front ) begin
-            hstate        <= HSTATE_HSYNC;
-            hsync         <= hsync_pol;
-            horiz_cnt     <= 32'd0;
-          end else begin  
-            hstate        <= HSTATE_FRONT;
-            hsync         <= hsync;
-            horiz_cnt     <= horiz_cnt + 32'd1;
-          end
-        end
+				// Note that assertion and deassertion of VSYNC are always coincident with
+				// the assertion of an HSYNC. A possibly more useful way to think of
+        // this is that VSYNC assertion and deassertion only occur at the end of
+        // a horizontal front porch.
+        //
+        // A point of clarity - for the first frame post a reset condition, no
+        // vertical or horizontal front porches occur; HYSNC and VSYNC are
+        // simply asserted together
+				FRAME_SYNC: begin
+					hsync				<= hsync_pol;
+					horiz_cnt		<= 32'd0;
+					hstate			<= HSYNC;
+          hactive     <= 1'b0;
+				end
 
-        HSTATE_HSYNC: begin
-          line_cnt        <= line_cnt;
-          if ( horiz_cnt == ( horiz_sync_len - 32'd1 ) ) begin
-            hstate        <= HSTATE_BACK;
-            hsync         <= ~hsync_pol;
-            horiz_cnt     <= 32'd0;
-          end else begin  
-            hstate        <= HSTATE_HSYNC;
-            hsync         <= hsync;
-            horiz_cnt     <= horiz_cnt + 32'd1;
-          end
-        end
-
-        HSTATE_BACK: begin
-          hsync           <= ~hsync_pol;
-          line_cnt        <= line_cnt;
-          if ( horiz_cnt == ( horiz_back - 32'd1 ) ) begin
-            hstate        <= HSTATE_LINE;
-            horiz_cnt     <= 32'd0;
-          end else begin  
-            hstate        <= HSTATE_BACK;
-            horiz_cnt     <= horiz_cnt + 32'd1;
-          end
-        end
-
-        HSTATE_LINE: begin
-          hsync           <= ~hsync_pol;
-          if ( horiz_cnt == ( horiz_res - 32'd1 ) ) begin
-            hstate        <= HSTATE_FRONT;
-            horiz_cnt     <= 32'd0;
-            line_cnt      <= line_cnt + 32'd1;
+        // Horizontal front porch
+        HFP_WAIT: begin
+          // HSYNC assertion occurs at the end of every horizontal front porch
+          if ( horiz_cnt == ( horiz_front - 32'd1 ) ) begin
+            hstate    <= HSYNC;
+            hsync     <= hsync_pol;
+            horiz_cnt <= 32'd0;
+            vert_cnt  <= vert_cnt + 32'd1;
           end else begin
-            hstate        <= HSTATE_LINE;
-            horiz_cnt     <= horiz_cnt + 32'd1;
-            line_cnt      <= line_cnt;
+            hstate    <= HFP_WAIT;
+            hsync     <= ~hsync_pol;
+            horiz_cnt <= horiz_cnt + 32'd1;
+            vert_cnt  <= vert_cnt;
+          end
+          hactive      <= 1'b0;
+        end
+
+        // Horizontal sync pulse
+        HSYNC: begin
+          if ( horiz_cnt == ( horiz_sync_len - 32'd1 ) ) begin
+            hstate    <= HBP_WAIT;
+            hsync     <= ~hsync_pol;
+            horiz_cnt <= 32'd0;
+            hsync_cnt <= hsync_cnt + 32'd1;
+          end else begin
+            hstate    <= HSYNC;
+            hsync     <= hsync_pol;
+            horiz_cnt <= horiz_cnt + 32'd1;
+            hsync_cnt <= hsync_cnt;
+          end
+          hactive     <= hactive;
+        end
+
+        // Horizontal back porch
+        HBP_WAIT: begin
+          hsync       <= ~hsync_pol;
+          if ( horiz_cnt == ( horiz_back - 32'd1 ) ) begin
+            hstate    <= HACTIVE;
+            horiz_cnt <= 32'd0;
+            hactive   <= 1'b1;
+          end else begin
+            hstate    <= HBP_WAIT;
+            horiz_cnt <= horiz_cnt + 32'd1;
+            hactive   <= hactive;
+          end
+        end
+
+        // Horizontal active region
+        HACTIVE: begin
+          hsync       <= ~hsync_pol;
+          if ( horiz_cnt == ( horiz_res - 32'd1 ) ) begin
+            hstate    <= HFP_WAIT;
+            horiz_cnt <= 32'd0;
+            hactive   <= 1'b0;
+          end else begin
+            hstate    <= HACTIVE;
+            horiz_cnt <= horiz_cnt + 32'd1;
+            hactive   <= hactive;
           end
         end
 
         default: begin end
-
       endcase
-
-    end
-  end
-
-  always @(posedge pxl_clk) begin
-    if ( pxl_rst == 1'b1 ) begin
-      vstate            <= VSTATE_RESET;
-      vsync             <= ~vsync_pol;
-
-    end else begin
 
       case (vstate)
 
-        VSTATE_RESET: begin
-          vstate          <= VSTATE_FRONT;
-          vsync           <= ~vsync_pol;
-          vert_cnt        <= 32'd0;
+        FRAME_SYNC: begin
+					vsync				<= vsync_pol;
+          vstate      <= VSYNC;
+          vert_cnt    <= 32'd0;
         end
 
-        VSTATE_BACK: begin
-          
-          vstate          <= VSTATE_
+        VSYNC: begin
+          if ( vert_cnt == ( vert_sync_len - 32'd1 ) 
+
+
     end
   end
-
-
-
-
-
 
   // This is probably all garbage too since I dont know what the output or
   // input data interface looks liek yet
