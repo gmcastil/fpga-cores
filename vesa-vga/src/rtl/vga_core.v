@@ -10,13 +10,13 @@ module vga_core #(
 
   // Horizontal front and back porch durations and horizontal sync length
   // should be defined in integer numbers of pixel clocks
-  input   wire  [31:0]    horiz_res,
-  input   wire  [31:0]    horiz_front,
-  input   wire  [31:0]    horiz_back,
-  input   wire  [31:0]    horiz_sync_len,
+  input   wire  [31:0]    horz_res,
+  input   wire  [31:0]    horz_front,
+  input   wire  [31:0]    horz_back,
+  input   wire  [31:0]    horz_sync_len,
 
   // Vertical front and back porch duration and vertical sync length should be
-  // defined in integer numbers of horizontal line
+  // defined in integer numbers of horizontal lines
   input   wire  [31:0]    vert_res,
   input   wire  [31:0]    vert_front,
   input   wire  [31:0]    vert_back,
@@ -28,178 +28,252 @@ module vga_core #(
   input   wire            hsync_pol,
   input   wire            vsync_pol,
 
-  output  reg   [7:0]     rgb_red,
-  output  reg   [7:0]     rgb_blue,
-  output  reg   [7:0]     rgb_green,
+  // 12-bit color input data - a single clock of latency is added by the video
+  // processor.  Data presented on these inputs will be presented one clock
+  // later at the output.  Presumably, the user knows the resolution and timing
+  // parameters it has supplied the core with and is capable of aligning the
+  // input data with the pixel clock.
+  input   wire  [3:0]     rgb_red,
+  input   wire  [3:0]     rgb_green,
+  input   wire  [3:0]     rgb_blue,
 
-  output  reg             hsync,
-  output  reg             vsync
+  // Indicate whether the output interface is in an active or blanking region.
+  // Note that these are fully synchronous outputs (e.g., `frame_active` is not
+  // simply `horz_active` AND `vert_active`.
+  output  reg             horz_active,
+  output  reg             vert_active,
+  output  reg             frame_active,
+
+  // Horizontal and vertical sync pulses
+  output  reg             vga_hsync,
+  output  reg             vga_vsync,
+
+  // 12-bit VGA data
+  output  reg   [3:0]     vga_red,
+  output  reg   [3:0]     vga_green,
+  output  reg   [3:0]     vga_blue
 );
 
+  // Define some constants to make blanking and such easier
+  localparam    BLANK       = 4'h00;
+
+  // FSM states
+  localparam    RESET       = 8'h00;
+  localparam    FRAME_SYNC  = 8'h05;
+  localparam    HSYNC       = 8'h01;
+  localparam    HBP         = 8'h02;
+  localparam    HACTIVE     = 8'h03;
+  localparam    HFP         = 8'h04;
+
+  reg   [31:0]    horz_cnt;
+  reg   [31:0]    vert_cnt;
+
+  /* Prevent Vivado from trying to help by altering the FSM encoding */
+  (* fsm_encoding = "user_encoding" *) reg   [7:0]     state;
+
   // synthesis translate_off
-  reg [((8*10)-1):0]       hstate_ascii;
+  reg [((8*10)-1):0]     state_ascii;
   always @(*) begin
-    case (hstate)
-      RESET:      begin hstate_ascii = "   RESET  "; end
-      HFP_WAIT:   begin hstate_ascii = " HFP_WAIT "; end
-      HSYNC:      begin hstate_ascii = "   HSYNC  "; end
-      HBP_WAIT:   begin hstate_ascii = " HBP_WAIT "; end
-      HACTIVE:    begin hstate_ascii = "  HACTIVE "; end
-      FRAME_SYNC: begin hstate_ascii = "FRAME_SYNC"; end
-      default:  begin end
+    case (state)
+      RESET:		  begin state_ascii = "  RESET   ";	end
+      FRAME_SYNC: begin state_ascii = "FRAME_SYNC"; end
+      HSYNC:	    begin state_ascii = "  HSYNC   ";	end
+      HBP:		    begin state_ascii = "   HBP    ";	end
+      HACTIVE:	  begin state_ascii = " HACTIVE  "; end
+      HFP:		    begin state_ascii = "   HFP    ";	end
+      default:    begin end
     endcase
   end
   // synthesis translate_on
 
-  localparam    [7:0]   RESET         = 8'h00;
-	localparam		[7:0]		HFP_WAIT			= 8'h01;
-	localparam		[7:0]		HSYNC					= 8'h02;
-	localparam		[7:0]		HBP_WAIT			= 8'h03;
-	localparam		[7:0]		HACTIVE				= 8'h04;
-  localparam    [7:0]   FRAME_SYNC    = 8'h05;
-
-  // Create counters to use for both dimensions - note that generally, the
-  // horizontal counter will be used to count pixels, while the vertical counter
-  // is used to count horizontal lines.
-  reg   [31:0]    horiz_cnt;
-  reg   [31:0]    hsync_cnt;
-  reg             frame_start;
-  reg   [7:0]     hstate;
-
-  reg             hactive;
-  reg             vactive;
-
   always @(posedge pxl_clk) begin
+
     if ( pxl_rst == 1'b1 ) begin
-      hsync           <= ~hsync_pol;
-      vsync           <= ~vsync_pol;
-			horiz_cnt		    <= 32'd0;
-      hstate          <= RESET;
-      frame_start     <= 1'b0;
-      hactive         <= 1'b1;
+      state                 <= RESET;
+      vga_hsync             <= ~hsync_pol;
+      vga_vsync             <= ~vsync_pol;
+      horz_cnt              <= 32'd0;
+      vert_cnt              <= 32'd0;
+      horz_active           <= 1'b0;
+      vert_active           <= 1'b0;
+      frame_active          <= 1'b0;
+
+      // Blank out the VGA output channels until the active region
+      vga_red               <= BLANK;
+      vga_green             <= BLANK;
+      vga_blue              <= BLANK;
     end else begin
 
-      case (hstate)
+      case (state)
 
         RESET: begin
-          hsync       <= ~hsync_pol;
-          vsync       <= ~vsync_pol;
-					horiz_cnt		<= 32'd0;
-          hstate      <= FRAME_SYNC;
-          hactive     <= 1'b0;
+          vga_hsync         <= ~hsync_pol;
+          vga_vsync         <= ~vsync_pol;
+          state             <= FRAME_SYNC;
+          horz_cnt          <= 32'd0;
+          vert_cnt          <= 32'd0;
+          horz_active       <= 1'b0;
+          vert_active       <= 1'b0;
+          frame_active      <= 1'b0;
         end
 
-				// Note that assertion and deassertion of VSYNC are always coincident with
-				// the assertion of an HSYNC. A possibly more useful way to think of
-        // this is that VSYNC assertion and deassertion only occur at the end of
-        // a horizontal front porch.
-        //
-        // A point of clarity - for the first frame post a reset condition, no
-        // vertical or horizontal front porches occur; HYSNC and VSYNC are
-        // simply asserted together
-				FRAME_SYNC: begin
-					hsync				<= hsync_pol;
-					horiz_cnt		<= 32'd0;
-					hstate			<= HSYNC;
-          hactive     <= 1'b0;
-				end
-
-        // Horizontal front porch
-        HFP_WAIT: begin
-          // HSYNC assertion occurs at the end of every horizontal front porch
-          if ( horiz_cnt == ( horiz_front - 32'd1 ) ) begin
-            hstate    <= HSYNC;
-            hsync     <= hsync_pol;
-            horiz_cnt <= 32'd0;
-            vert_cnt  <= vert_cnt + 32'd1;
-          end else begin
-            hstate    <= HFP_WAIT;
-            hsync     <= ~hsync_pol;
-            horiz_cnt <= horiz_cnt + 32'd1;
-            vert_cnt  <= vert_cnt;
-          end
-          hactive      <= 1'b0;
+        FRAME_SYNC: begin
+          vga_hsync         <= hsync_pol;
+          vga_vsync         <= vsync_pol;
+          state             <= HSYNC;
+          horz_cnt          <= 32'd0;
+          vert_cnt          <= 32'd0;
+          horz_active       <= 1'b0;
+          vert_active       <= 1'b0;
+          frame_active      <= 1'b0;
         end
 
-        // Horizontal sync pulse
         HSYNC: begin
-          if ( horiz_cnt == ( horiz_sync_len - 32'd1 ) ) begin
-            hstate    <= HBP_WAIT;
-            hsync     <= ~hsync_pol;
-            horiz_cnt <= 32'd0;
-            hsync_cnt <= hsync_cnt + 32'd1;
+          if ( horz_cnt == ( horz_sync_len - 32'd1 ) ) begin
+            horz_cnt        <= 32'd0;
+            state           <= HBP;
+            vga_hsync       <= ~vsync_pol;
           end else begin
-            hstate    <= HSYNC;
-            hsync     <= hsync_pol;
-            horiz_cnt <= horiz_cnt + 32'd1;
-            hsync_cnt <= hsync_cnt;
-          end
-          hactive     <= hactive;
-        end
-
-        // Horizontal back porch
-        HBP_WAIT: begin
-          hsync       <= ~hsync_pol;
-          if ( horiz_cnt == ( horiz_back - 32'd1 ) ) begin
-            hstate    <= HACTIVE;
-            horiz_cnt <= 32'd0;
-            hactive   <= 1'b1;
-          end else begin
-            hstate    <= HBP_WAIT;
-            horiz_cnt <= horiz_cnt + 32'd1;
-            hactive   <= hactive;
+            horz_cnt        <= horz_cnt + 32'd1;
+            state           <= HSYNC;
+            vga_hsync       <= vga_hsync;
           end
         end
 
-        // Horizontal active region
+        HBP: begin
+          if ( horz_cnt == ( horz_back - 32'd1 ) ) begin
+            horz_cnt        <= 32'd0;
+            state           <= HACTIVE;
+            horz_active     <= 1'b1;
+            if ( vert_active == 1'b1 ) begin
+              vga_red       <= rgb_red;
+              vga_green     <= rgb_green;
+              vga_blue      <= rgb_blue;
+              frame_active  <= 1'b1;
+            end else begin
+              vga_red       <= BLANK;
+              vga_green     <= BLANK;
+              vga_blue      <= BLANK;
+              frame_active  <= 1'b0;
+            end
+          end else begin
+            horz_cnt        <= horz_cnt + 32'd1;
+            state           <= HBP;
+            horz_active     <= 1'b0;
+            frame_active    <= 1'b0;
+          end
+        end
+
         HACTIVE: begin
-          hsync       <= ~hsync_pol;
-          if ( horiz_cnt == ( horiz_res - 32'd1 ) ) begin
-            hstate    <= HFP_WAIT;
-            horiz_cnt <= 32'd0;
-            hactive   <= 1'b0;
+          if ( horz_cnt == ( horz_res - 32'd1 ) ) begin
+            horz_cnt        <= 32'd0;
+            state           <= HFP;
+            horz_active     <= 1'b0;
+            // Note no dependence on vertical active here
+            frame_active    <= 1'b0;
+            vga_red         <= BLANK;
+            vga_green       <= BLANK;
+            vga_blue        <= BLANK;
           end else begin
-            hstate    <= HACTIVE;
-            horiz_cnt <= horiz_cnt + 32'd1;
-            hactive   <= hactive;
+            horz_cnt        <= horz_cnt + 32'd1;
+            state           <= HACTIVE;
+            horz_active     <= 1'b1;
+            vga_red         <= rgb_red;
+            vga_green       <= rgb_green;
+            vga_blue        <= rgb_blue;
+            frame_active    <= frame_active;
           end
+        end
+
+        HFP: begin
+          if ( horz_cnt == ( horz_front - 32'd1 ) ) begin
+            horz_cnt        <= 32'd0;
+            state           <= HSYNC;
+            // HSYNC gets asserted every time we reach the end of a line
+            vga_hsync       <= hsync_pol;
+            // Three things are determined on the last clock out of the horizontal
+            // front porch: the status of VSYNC, value of vert_cnt, and status of
+            // vert_active
+            if ( vert_cnt == ( vert_sync_len + vert_back + vert_res + vert_front - 32'd1 ) ) begin
+              vga_vsync     <= vsync_pol;
+            end else if ( vert_cnt == ( vert_sync_len - 32'd1 ) ) begin
+              vga_vsync     <= ~vsync_pol;
+            end else begin
+              vga_vsync     <= vga_vsync;
+            end
+            // TODO: Interesting to see if there is another way that doesn't
+            // require inferring an adder here
+            if ( vert_cnt == ( vert_sync_len + vert_back + vert_res + vert_front - 32'd1 ) ) begin
+              vert_cnt      <= 32'd0;
+            end else begin
+              vert_cnt      <= vert_cnt + 32'd1;
+            end
+
+            case (vert_cnt)
+              32'd0: begin
+                vert_active <= 1'b0;
+              end
+              (vert_sync_len + vert_back - 32'd1): begin
+                vert_active <= 1'b1;
+              end
+              (vert_sync_len + vert_back + vert_res - 32'd1 ): begin
+                vert_active <= 1'b0;
+              end
+              default: begin
+                vert_active <= vert_active;
+              end
+            endcase
+
+          end else begin
+            horz_cnt        <= horz_cnt + 32'd1;
+            state           <= HFP;
+            vert_cnt        <= vert_cnt;
+            vga_vsync       <= vga_vsync;
+          end
+          horz_active       <= 1'b0;
+          frame_active      <= 1'b0;
         end
 
         default: begin end
+
       endcase
-
-      case (vstate)
-
-        FRAME_SYNC: begin
-					vsync				<= vsync_pol;
-          vstate      <= VSYNC;
-          vert_cnt    <= 32'd0;
-        end
-
-        VSYNC: begin
-          if ( vert_cnt == ( vert_sync_len - 32'd1 ) 
-
-
     end
   end
 
-  // This is probably all garbage too since I dont know what the output or
-  // input data interface looks liek yet
-  //
   generate
-    if (ILA_VGA_CORE == 1) begin
+    if ( ILA_VGA_CORE == 1 ) begin
       ila_vga_core //#(
       //)
       ila_vga_core_i0 (
-        .clk        (pxl_clk),
-        .probe0     (pxl_rst),
-        .probe1     (hsync),
-        .probe2     (vsync),
-        .probe3     (rgb_red),      // [7:0]
-        .probe4     (rgb_green),    // [7:0]
-        .probe6     (rgb_blue)      // [7:0]
-      );
+        .clk          (pxl_clk),
+        .probe0			  (pxl_rst),          // input   wire
+        .probe1			  (horz_res),         // input   wire  [31:0]
+        .probe2			  (horz_front),       // input   wire  [31:0]
+        .probe3			  (horz_back),        // input   wire  [31:0]
+        .probe4			  (horz_sync_len),    // input   wire  [31:0]
+        .probe5			  (vert_res),         // input   wire  [31:0]
+        .probe6			  (vert_front),       // input   wire  [31:0]
+        .probe7			  (vert_back),        // input   wire  [31:0]
+        .probe8			  (vert_sync_len),    // input   wire  [31:0]
+        .probe9			  (hsync_pol),        // input   wire
+        .probe10			(vsync_pol),        // input   wire
+        .probe11			(rgb_red),          // input   wire   [3:0]
+        .probe12			(rgb_green),        // input   wire   [3:0]
+        .probe13			(rgb_blue),         // input   wire   [3:0]
+        .probe14			(horz_active),      // output  reg
+        .probe15			(vert_active),      // output  reg
+        .probe16			(frame_active),     // output  reg
+        .probe17			(vga_hsync),        // output  reg
+        .probe18			(vga_vsync),        // output  reg
+        .probe19			(vga_red),          // output  reg    [3:0]
+        .probe20			(vga_green),        // output  reg    [3:0]
+        .probe21			(vga_blue),         // output  reg    [3:0]
+        .probe22			(horz_cnt),         //               [31:0]
+        .probe23			(vert_cnt),         //               [31:0]
+        .probe24			(state)             //                [7:0]
+      ) /* synthesis syn_keep=1 syn_preserve=1 syn_noprune=1 */;
     end
   endgenerate
+
 endmodule
 
