@@ -126,11 +126,14 @@ module basys3_top // #(
     .rst_100m00       ()
   );
 
-  vga_test_gen //#(
-  //)
+  vga_test_gen #(
+    .ILA_VGA_PATTERN  (`ILA_VGA_PATTERN_ENABLE)
+  )
   vga_test_gen_i0 (
     .pxl_clk					(pxl_clk),        // input   wire    
     .pxl_rst					(pxl_rst),        // input   wire    
+    .horz_res         (horz_res),       // input   wire  [31:0]
+    .vert_res         (vert_res),       // input   wire  [31:0]
     .horz_active	  	(horz_active),    // input   wire    
     .vert_active			(vert_active),    // input   wire    
     .frame_active			(frame_active),   // input   wire    
@@ -141,7 +144,7 @@ module basys3_top // #(
 
 
   vga_core #(
-    .ILA_VGA_CORE     (`ILA_VGA_CORE)
+    .ILA_VGA_CORE     (`ILA_VGA_CORE_ENABLE)
   )
   vga_core_i0 (
     .pxl_clk			    (pxl_clk),         // input  wire            
