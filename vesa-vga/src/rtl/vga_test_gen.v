@@ -20,14 +20,22 @@ module vga_test_gen #(
   output  wire   [3:0]  rgb_blue
 );
 
-  localparam    COLOR0 = 12'h000;
-  localparam    COLOR1 = 12'hF00;
-  localparam    COLOR2 = 12'h800;
-  localparam    COLOR3 = 12'h0F0;
-  localparam    COLOR4 = 12'h080;
-  localparam    COLOR5 = 12'h00F;
-  localparam    COLOR6 = 12'h008;
-  localparam    COLOR7 = 12'h000;
+  localparam    COLOR0  = 12'hFFF;
+  localparam    COLOR1  = 12'hCCC;
+  localparam    COLOR2  = 12'h888;
+  localparam    COLOR3  = 12'h000;
+  localparam    COLOR4  = 12'hF00;
+  localparam    COLOR5  = 12'h800;
+  localparam    COLOR6  = 12'hFF0;
+  localparam    COLOR7  = 12'h880;
+  localparam    COLOR8  = 12'h0F0;
+  localparam    COLOR9  = 12'h080;
+  localparam    COLOR10 = 12'h0FF;
+  localparam    COLOR11 = 12'h088;
+  localparam    COLOR12 = 12'h00F;
+  localparam    COLOR13 = 12'h008;
+  localparam    COLOR14 = 12'hF0F;
+  localparam    COLOR15 = 12'h808;
 
   reg   [31:0]        horz_cnt;
   reg   [31:0]        vert_cnt;
@@ -38,7 +46,7 @@ module vga_test_gen #(
   // Column width is just the horizontal resolution, divided into eight vertical
   // bars
   wire  [31:0]        bar_width;
-  assign bar_width    = horz_res >> 3;
+  assign bar_width    = horz_res >> 4;
 
   assign rgb_red      = rgb_color[11:8];
   assign rgb_green    = rgb_color[7:4];
@@ -46,13 +54,21 @@ module vga_test_gen #(
 
   always @(*) begin
     case (rgb_color)
-      COLOR0: begin rgb_color_next = COLOR1; end
-      COLOR1: begin rgb_color_next = COLOR2; end
-      COLOR2: begin rgb_color_next = COLOR3; end
-      COLOR3: begin rgb_color_next = COLOR4; end
-      COLOR4: begin rgb_color_next = COLOR5; end
-      COLOR5: begin rgb_color_next = COLOR6; end
-      COLOR6: begin rgb_color_next = COLOR7; end
+      COLOR0:  begin rgb_color_next = COLOR1;  end
+      COLOR1:  begin rgb_color_next = COLOR2;  end
+      COLOR2:  begin rgb_color_next = COLOR3;  end
+      COLOR3:  begin rgb_color_next = COLOR4;  end
+      COLOR4:  begin rgb_color_next = COLOR5;  end
+      COLOR5:  begin rgb_color_next = COLOR6;  end
+      COLOR6:  begin rgb_color_next = COLOR7;  end
+      COLOR7:  begin rgb_color_next = COLOR8;  end
+      COLOR8:  begin rgb_color_next = COLOR9;  end
+      COLOR9:  begin rgb_color_next = COLOR10; end
+      COLOR10: begin rgb_color_next = COLOR11; end
+      COLOR11: begin rgb_color_next = COLOR12; end
+      COLOR12: begin rgb_color_next = COLOR13; end
+      COLOR13: begin rgb_color_next = COLOR14; end
+      COLOR14: begin rgb_color_next = COLOR15; end
       default: begin end
     endcase
   end
