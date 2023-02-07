@@ -20,15 +20,6 @@ module vga_test_gen #(
   output  wire   [3:0]  rgb_blue
 );
 
-  localparam    COLOR_HORZ_LEN = 32'd80;
-  localparam    COLOR_VERT_LEN = 32'd8;
-
-  reg   [31:0]        horz_cnt;
-  reg   [31:0]        vert_cnt;
-
-  reg   [11:0]        rgb_color;
-  reg   [11:0]        rgb_color_next;   
-
   localparam    COLOR0 = 12'h000;
   localparam    COLOR1 = 12'hF00;
   localparam    COLOR2 = 12'h800;
@@ -38,9 +29,20 @@ module vga_test_gen #(
   localparam    COLOR6 = 12'h008;
   localparam    COLOR7 = 12'h000;
 
-  assign rgb_red    = rgb_color[11:8];
-  assign rgb_green  = rgb_color[7:4];
-  assign rgb_blue   = rgb_color[3:0];
+  reg   [31:0]        horz_cnt;
+  reg   [31:0]        vert_cnt;
+
+  reg   [11:0]        rgb_color;
+  reg   [11:0]        rgb_color_next;   
+
+  // Column width is just the horizontal resolution, divided into eight vertical
+  // bars
+  wire  [31:0]        bar_width;
+  assign bar_width    = horz_res >> 3;
+
+  assign rgb_red      = rgb_color[11:8];
+  assign rgb_green    = rgb_color[7:4];
+  assign rgb_blue     = rgb_color[3:0];
 
   always @(*) begin
     case (rgb_color)
@@ -51,18 +53,31 @@ module vga_test_gen #(
       COLOR4: begin rgb_color_next = COLOR5; end
       COLOR5: begin rgb_color_next = COLOR6; end
       COLOR6: begin rgb_color_next = COLOR7; end
-      COLOR7: begin rgb_color_next = COLOR0; end
       default: begin end
     endcase
   end
 
   always @(posedge pxl_clk) begin
     if ( pxl_rst == 1'b1 ) begin
+      rgb_color       <= COLOR0;
+      horz_cnt        <= 32'd0;
+      vert_cnt        <= 32'd0;
     end else begin
-      if ( 
+      if ( frame_active == 1'b1 ) begin
+        if ( horz_cnt == ( bar_width - 32'd1 ) ) begin
+          horz_cnt    <= 32'd0;
+          rgb_color   <= rgb_color_next;
+        end else begin
+          horz_cnt    <= horz_cnt + 32'd1;
+          rgb_color   <= rgb_color;
+        end
+      end else begin
+        horz_cnt      <= 32'd0;
+        rgb_color     <= COLOR0;
+      end
     end
   end
-  
+
   generate
     if ( ILA_VGA_PATTERN == 1 ) begin
       ila_vga_test_gen //#(
